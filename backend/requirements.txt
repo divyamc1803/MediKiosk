@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+python-dotenv
+websockets
+aiofiles
+
+requests>=2.31.0
+email-validator>=2.0.0
+bcrypt==4.0.1

@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    max-width: 100vw;
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  body {
+    @apply bg-emerald-50/30 text-gray-900 antialiased;
+    max-width: 100vw;
+    overflow-x: hidden;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button, input, select, textarea {
+    font: inherit;
+  }
+
+  /* Ensure long words, medical terms, and emails wrap cleanly without overflowing */
+  p, h1, h2, h3, h4, h5, h6, span, td, th, li {
+    overflow-wrap: break-word;
+  }
+}
+
+/* Leaflet Resilient Layout & Z-Index Containment */
+.leaflet-container {
+  font-family: inherit;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  min-height: 320px;
+  z-index: 1 !important;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 10 !important;
+}
+
+.leaflet-pane {
+  z-index: 2 !important;
+}
+
+.leaflet-tile-pane {
+  z-index: 2 !important;
+}
+
+.leaflet-overlay-pane {
+  z-index: 4 !important;
+}
+
+.leaflet-marker-pane {
+  z-index: 6 !important;
+}
+
+.leaflet-popup-pane {
+  z-index: 7 !important;
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 16px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18) !important;
+  max-width: calc(100vw - 48px) !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  line-height: 1.4 !important;
+  max-width: calc(100vw - 80px) !important;
+  overflow-wrap: anywhere !important;
+}
+
+.mk-ambulance-pulse {
+  animation: ambulancePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes ambulancePulse {
+  50% {
+    transform: scale(1.08);
+  }
+}

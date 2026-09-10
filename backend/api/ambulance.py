@@ -220,18 +220,8 @@ def emergency_request(
     driver = db.query(models.AmbulanceDriver).filter(models.AmbulanceDriver.assigned_ambulance_id == match.id).first()
     if driver:
         req.driver_id = driver.id
-        s_lat = driver.current_lat if driver.current_lat is not None else DEMO_DRIVER_LOCATION["lat"]
-        s_lng = driver.current_lng if driver.current_lng is not None else DEMO_DRIVER_LOCATION["lng"]
-        background_tasks.add_task(
-            ambulance_simulator.start_trip_simulation,
-            request_id=req.id,
-            ambulance_id=match.id,
-            from_lat=s_lat,
-            from_lng=s_lng,
-            to_lat=req.pickup_lat,
-            to_lng=req.pickup_lng,
-            target_status=models.RequestStatus.ARRIVING.value
-        )
+        # NOTE: simulation does NOT start here. The ambulance moves only after
+        # the driver explicitly accepts via POST /{id}/accept.
     match.status = models.AmbulanceStatus.BUSY
     db.commit(); db.refresh(req)
     return serialize_request(req, db)
@@ -270,7 +260,9 @@ async def create_request(
     db.commit()
     db.refresh(new_request)
     
-    # Run matching engine to locate nearest suitable ambulance
+    # Run matching engine to locate nearest suitable ambulance.
+    # NOTE: We only match here — simulation does NOT start yet.
+    # The ambulance moves only after the driver explicitly accepts via POST /{id}/accept.
     best_match = ambulance_matcher.match_best(new_request, db, government_only=(request.priority == models.Priority.CRITICAL))
     if best_match:
         new_request.ambulance_id = best_match.id
@@ -279,18 +271,6 @@ async def create_request(
         if driver:
             new_request.driver_id = driver.id
             best_match.status = models.AmbulanceStatus.BUSY
-            s_lat = driver.current_lat if driver.current_lat is not None else DEMO_DRIVER_LOCATION["lat"]
-            s_lng = driver.current_lng if driver.current_lng is not None else DEMO_DRIVER_LOCATION["lng"]
-            background_tasks.add_task(
-                ambulance_simulator.start_trip_simulation,
-                request_id=new_request.id,
-                ambulance_id=best_match.id,
-                from_lat=s_lat,
-                from_lng=s_lng,
-                to_lat=new_request.pickup_lat,
-                to_lng=new_request.pickup_lng,
-                target_status=models.RequestStatus.ARRIVING.value
-            )
         db.commit()
         db.refresh(new_request)
         
@@ -324,26 +304,53 @@ async def accept_request(
     req = db.query(models.AmbulanceRequest).filter(models.AmbulanceRequest.id == id).first()
     if not req:
         raise HTTPException(404, "Request not found")
-        
-    req.status = models.RequestStatus.DRIVER_ASSIGNED
-    driver = db.query(models.AmbulanceDriver).filter(models.AmbulanceDriver.id == req.driver_id).first()
+
+    # ── Race-condition guard ─────────────────────────────────────────────
+    # Only accept if the request is still in MATCHED state.
+    # If two drivers hit this simultaneously, the DB commit of the first one
+    # flips the status to DRIVER_ASSIGNED, so the second driver's check fails
+    # and gets a 409 Conflict instead of starting a duplicate simulation.
+    if req.status not in (models.RequestStatus.MATCHED, models.RequestStatus.SEARCHING):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Request already accepted by another driver (current status: {req.status.value})"
+        )
+
+    # ── Resolve which driver is accepting ───────────────────────────────
+    # Prefer the driver already assigned to the request.
+    # If another online driver is trying to accept an unassigned request, allow it.
+    driver = db.query(models.AmbulanceDriver).filter(models.AmbulanceDriver.user_id == current_user.id).first()
     if not driver:
-        # Assign driver if not already assigned
-        driver = db.query(models.AmbulanceDriver).filter(models.AmbulanceDriver.user_id == current_user.id).first()
-        if driver:
-            req.driver_id = driver.id
-    
+        raise HTTPException(403, "Only registered drivers can accept requests")
+
+    # If the request already has a specific driver assigned, enforce it.
+    if req.driver_id and req.driver_id != driver.id:
+        raise HTTPException(
+            status_code=409,
+            detail="This request was dispatched to a different driver"
+        )
+
+    # Assign the accepting driver if not already set
+    req.driver_id = driver.id
+    req.status = models.RequestStatus.DRIVER_ASSIGNED
+
     if req.ambulance_id:
         amb = db.query(models.Ambulance).filter(models.Ambulance.id == req.ambulance_id).first()
+        if amb:
+            amb.status = models.AmbulanceStatus.BUSY
+    elif driver.assigned_ambulance_id:
+        # Assign ambulance from driver's own vehicle if none set yet
+        req.ambulance_id = driver.assigned_ambulance_id
+        amb = db.query(models.Ambulance).filter(models.Ambulance.id == driver.assigned_ambulance_id).first()
         if amb:
             amb.status = models.AmbulanceStatus.BUSY
 
     db.commit()
     db.refresh(req)
-    
-    # Auto-trigger movement simulation to patient
-    s_lat = driver.current_lat if driver and driver.current_lat is not None else DEMO_DRIVER_LOCATION["lat"]
-    s_lng = driver.current_lng if driver and driver.current_lng is not None else DEMO_DRIVER_LOCATION["lng"]
+
+    # ── Start movement simulation ONLY now that driver has accepted ──────
+    s_lat = driver.current_lat if driver.current_lat is not None else DEMO_DRIVER_LOCATION["lat"]
+    s_lng = driver.current_lng if driver.current_lng is not None else DEMO_DRIVER_LOCATION["lng"]
     background_tasks.add_task(
         ambulance_simulator.start_trip_simulation,
         request_id=req.id,
@@ -363,7 +370,7 @@ async def accept_request(
     background_tasks.add_task(manager.broadcast, event_data, f"ambulance_{req.id}")
     background_tasks.add_task(manager.broadcast, event_data, "hospital_dispatch")
     background_tasks.add_task(manager.broadcast, event_data, "driver_requests")
-    
+
     return {"status": "accepted", "request": serialized}
 
 @router.post("/{id}/decline")

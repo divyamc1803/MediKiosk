@@ -312,11 +312,13 @@ export function AIInterview() {
 
   // ── Derived progress values ───────────────────────────────────────────
   // ONE formula, used everywhere. No rounding here so CSS width is smooth.
-  const currentIdx = isCompleted ? 15 : (currentQuestion?.question_index ?? 1);
-  // progressValue is the raw float (e.g. 6.666... for Q1)
-  const progressValue = isCompleted ? 100 : calcProgress(currentIdx);
-  // progressLabel is rounded to one decimal for the human-readable label
-  const progressLabel = isCompleted ? '100' : progressValue.toFixed(1).replace('.0', '');
+  // When currentQuestion is null (still loading), use 0 so the bar starts
+  // empty and never shows a false 6.67% before the real index arrives.
+  const currentIdx = isCompleted ? 15 : (currentQuestion?.question_index ?? 0);
+  // progressValue is the raw float (e.g. 6.666... for Q1). Zero when loading.
+  const progressValue = isCompleted ? 100 : (currentIdx === 0 ? 0 : calcProgress(currentIdx));
+  // progressLabel: hide until we have a real question
+  const progressLabel = isCompleted ? '100' : (currentIdx === 0 ? '0' : progressValue.toFixed(1).replace('.0', ''));
   // CSS width uses the exact float so it never jumps artificially
   const sliderWidthCSS = `${progressValue.toFixed(4)}%`;
 

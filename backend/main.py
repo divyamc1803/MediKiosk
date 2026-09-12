@@ -23,7 +23,14 @@ app = FastAPI(title="MediKiosk API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        # Allow the deployed Vercel frontend (set via FRONTEND_URL env var on Render)
+        os.getenv("FRONTEND_URL", "*"),
+        # Always allow local development
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

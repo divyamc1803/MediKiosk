@@ -10,7 +10,10 @@ import type {
 } from '../types';
 
 const client = axios.create({
-  baseURL: '/api',
+  // In production (Vercel), VITE_API_URL is set to the Render backend URL.
+  // In local dev this env var is undefined, so it falls back to '/api'
+  // which is picked up by the Vite dev-server proxy → localhost:8000.
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: { 'Content-Type': 'application/json' },
 });
 

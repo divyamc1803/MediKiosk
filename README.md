@@ -8,6 +8,19 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&style=flat-square)](https://typescriptlang.org/)
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&style=flat-square)](https://python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
+[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square&logo=vercel)](https://medi-kiosk-eight.vercel.app)
+[![Render](https://img.shields.io/badge/API%20on-Render-46E3B7?style=flat-square&logo=render)](https://medikiosk-afm2.onrender.com)
+
+## 🌐 Live Demo
+
+| | Link |
+|---|---|
+| 🖥️ **Frontend (Vercel)** | [medi-kiosk-eight.vercel.app](https://medi-kiosk-eight.vercel.app) |
+| ⚙️ **Backend API (Render)** | [medikiosk-afm2.onrender.com](https://medikiosk-afm2.onrender.com) |
+| 📖 **API Docs** | [medikiosk-afm2.onrender.com/docs](https://medikiosk-afm2.onrender.com/docs) |
+
+> [!NOTE]
+> The backend runs on Render's free tier — the first request after 15 minutes of inactivity may take ~30 seconds to wake up.
 
 ---
 
@@ -181,8 +194,13 @@ npx tsc --noEmit
 
 Built with ❤️ for **Smart India Hackathon 2026** by **Team MediKiosk**.
 
+| Member | GitHub |
+|---|---|
+| Divyam Choudhary | [@divyamc1803](https://github.com/divyamc1803) |
+| Aditya Bathla | [@Aditya-bathla](https://github.com/Aditya-bathla) |
+
 ---
 
 ## 📄 License
 
-MIT © 2026 Divyam Choudhary
+MIT © 2026 Team MediKiosk
